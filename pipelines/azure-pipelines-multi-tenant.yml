@@ -1,0 +1,42 @@
+trigger:
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - src/*
+
+variables:
+  serviceConnectionName: '<your service connection>'
+  containerRegistoryName: '<your acr name>'
+  containerImageName: '<your acr image name>'
+  containerImageTag: '<your acr image tag name>'
+
+stages:
+  # Publish
+  - stage: DockerBuildAndPush
+    displayName: 'Build and Push Docker Image'
+    jobs:
+    - job: BuildAndPushImage
+      displayName: 'Build and Push Docker Image Job'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - task: AzureCLI@2
+          inputs:
+            azureSubscription: $(serviceConnectionName)
+            scriptType: 'bash'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              echo "Logging into Azure Container Registry"
+              az acr login --name $(containerRegistoryName)
+
+              echo "Building Docker image with Dockerfile"
+              docker build -f $(Build.SourcesDirectory)/src/Dockerfile -t $(containerImageName):$(Build.BuildId) $(Build.SourcesDirectory)/src
+
+              echo "Tagging Docker image"
+              docker tag $(containerImageName):$(Build.BuildId) $(containerRegistoryName).azurecr.io/$(containerImageName):$(containerImageTag)
+
+              echo "Pushing Docker image"
+              docker push $(containerRegistoryName).azurecr.io/$(containerImageName):$(containerImageTag)
+          displayName: 'Build, Tag, and Push Docker Image using Azure CLI'

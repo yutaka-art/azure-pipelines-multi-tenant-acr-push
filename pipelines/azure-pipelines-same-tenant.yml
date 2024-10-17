@@ -1,0 +1,33 @@
+trigger:
+  branches:
+    include:
+    - main
+  paths:
+    include:
+    - src/*
+
+variables:
+  serviceConnectionName: '<your service connection>'
+  containerRegistoryName: '<your acr name>'
+  containerImageName: '<your acr image name>'
+  containerImageTag: '<your acr image tag name>'
+
+stages:
+  # Publish
+  - stage: DockerBuildAndPush
+    displayName: 'Build and Push Docker Image'
+    jobs:
+    - job: BuildAndPushImage
+      displayName: 'Build and Push Docker Image Job'
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - task: Docker@2
+          displayName: 'Build and Push Docker image'
+          inputs:
+            command: buildAndPush
+            repository: $(containerImageName)
+            dockerfile: '$(Build.SourcesDirectory)/src/Dockerfile'
+            containerRegistry: $(serviceConnectionName)
+            tags: |
+              $(containerImageTag)
